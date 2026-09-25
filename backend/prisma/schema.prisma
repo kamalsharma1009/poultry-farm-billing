@@ -1,0 +1,117 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  BILLING_OPERATOR
+}
+
+enum BillStatus {
+  GENERATED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(BILLING_OPERATOR)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Customer {
+  id              String   @id @default(uuid())
+  customerCode    String   @unique
+  customerName    String
+  businessName    String
+  mobile          String
+  alternateMobile String?
+  address         String?
+  gstNumber       String?
+  isActive        Boolean  @default(true)
+  createdBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  bills           Bill[]
+
+  @@map("customers")
+}
+
+model FinancialYear {
+  id        String   @id @default(uuid())
+  yearCode  String   @unique
+  startDate DateTime
+  endDate   DateTime
+  isCurrent Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  bills     Bill[]
+
+  @@map("financial_years")
+}
+
+model Bill {
+  id              String        @id @default(uuid())
+  billNumber      String        @unique
+  customerId      String
+  financialYearId String
+  billDate        DateTime
+  subtotal        Decimal       @db.Decimal(12, 2)
+  discount        Decimal       @default(0.00) @db.Decimal(12, 2)
+  otherCharges    Decimal       @default(0.00) @db.Decimal(12, 2)
+  grandTotal      Decimal       @db.Decimal(12, 2)
+  previousDue     Decimal       @default(0.00) @db.Decimal(12, 2)
+  paidAmount      Decimal       @default(0.00) @db.Decimal(12, 2)
+  status          BillStatus    @default(GENERATED)
+  createdBy       String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  financialYear FinancialYear @relation(fields: [financialYearId], references: [id])
+  items         BillItem[]
+
+  @@map("bills")
+}
+
+model BillItem {
+  id          String   @id @default(uuid())
+  billId      String
+  productName String
+  quantity    Int
+  weight      Decimal  @db.Decimal(10, 3)
+  rate        Decimal  @db.Decimal(10, 2)
+  amount      Decimal  @db.Decimal(12, 2)
+  createdAt   DateTime @default(now())
+
+  bill Bill @relation(fields: [billId], references: [id], onDelete: Cascade)
+
+  @@map("bill_items")
+}
+
+model BusinessSettings {
+  id                 String   @id @default("default")
+  businessName       String   @default("Broilers Express")
+  address            String   @default("Motton Market, Jaysingpur")
+  mobile             String   @default("9326153310")
+  email              String?
+  gstNumber          String?
+  logo               String?
+  billStartingNumber Int      @default(68923)
+  billFooter         String   @default("Thank you for your business! - Broilers Express")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("business_settings")
+}
