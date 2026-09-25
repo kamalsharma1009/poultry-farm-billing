@@ -6,11 +6,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "build": "npx prisma generate",
-    "postinstall": "npx prisma generate",
-    "prisma:generate": "prisma generate",
-    "prisma:db-push": "prisma db push",
-    "prisma:migrate": "prisma migrate deploy"
+    "build": "node node_modules/prisma/bin/prisma.js generate",
+    "prisma:generate": "node node_modules/prisma/bin/prisma.js generate",
+    "prisma:db-push": "node node_modules/prisma/bin/prisma.js db push",
+    "prisma:migrate": "node node_modules/prisma/bin/prisma.js migrate deploy"
   },
   "keywords": [],
   "author": "",
