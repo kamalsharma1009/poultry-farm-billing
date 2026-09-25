@@ -147,8 +147,8 @@ export default function BillView() {
       </div>
 
       {/* Top Action Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4 no-print">
-        <div className="flex items-center gap-3">
+      <div className="bg-white rounded-2xl p-3.5 sm:p-4 border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 no-print">
+        <div className="flex items-center justify-between sm:justify-start gap-3">
           <span
             className={`px-3 py-1 rounded-full text-xs font-bold ${
               bill.status === 'GENERATED'
@@ -163,22 +163,22 @@ export default function BillView() {
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2">
           {/* Download PDF */}
           <button
             onClick={handleDownloadPDF}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs active:scale-95"
           >
-            <Download className="w-4 h-4 text-blue-100" />
-            <span>Download PDF</span>
+            <Download className="w-3.5 h-3.5 text-blue-100" />
+            <span>Download</span>
           </button>
 
           {/* Print */}
           <button
             onClick={handlePrintPDF}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs hover:-translate-y-0.5"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs active:scale-95"
           >
-            <Printer className="w-4 h-4 text-purple-100" />
+            <Printer className="w-3.5 h-3.5 text-purple-100" />
             <span>Print</span>
           </button>
 
@@ -186,9 +186,9 @@ export default function BillView() {
           {(whatsappInfo.formattedMobile || bill.customer?.mobile) && (
             <button
               onClick={handleSharePDFWhatsApp}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-xs rounded-xl transition-all shadow-xs hover:-translate-y-0.5"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-[#25D366] hover:bg-[#20ba5a] text-white font-bold text-xs rounded-xl transition-all shadow-xs active:scale-95"
             >
-              <MessageSquare className="w-4 h-4 fill-current" />
+              <MessageSquare className="w-3.5 h-3.5 fill-current" />
               <span>WhatsApp</span>
             </button>
           )}
@@ -196,12 +196,12 @@ export default function BillView() {
           {/* Copy Bill Link */}
           <button
             onClick={handleCopyLink}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors border border-slate-300"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors border border-slate-300 active:scale-95"
           >
             {copiedLink ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-emerald-700 font-bold">Link Copied!</span>
+                <span className="text-emerald-700 font-bold">Copied!</span>
               </>
             ) : (
               <>
@@ -216,150 +216,150 @@ export default function BillView() {
             <button
               onClick={handleCancelBill}
               disabled={cancelBillMutation.isLoading}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-semibold text-xs rounded-xl transition-colors"
+              className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-semibold text-xs rounded-xl transition-colors"
             >
-              <AlertOctagon className="w-4 h-4" />
-              <span>Cancel</span>
+              <AlertOctagon className="w-3.5 h-3.5" />
+              <span>Cancel Bill</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Bill Visual View Container - Styled exactly like the Reference Physical Bill */}
-      <div className="w-full overflow-x-auto pb-6 pt-1">
-        <div className="min-w-[560px] max-w-2xl mx-auto bg-white rounded-xl border-2 border-black p-4 sm:p-6 shadow-xl font-sans text-black">
-        {/* Bill Slip Header with Chicken Logo & Details */}
-        <div className="flex items-center gap-4 pb-3 border-b-2 border-black">
-          <div className="shrink-0">
-            <img
-              src="/chicken_logo.jpg"
-              alt="Broilers Express"
-              className="w-24 h-20 object-contain rounded-md"
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
-            />
+      {/* Bill Visual View Container - Perfectly Responsive on Mobile & Desktop */}
+      <div className="w-full pb-6 pt-1">
+        <div className="w-full max-w-2xl mx-auto bg-white rounded-xl border-2 border-black p-3 sm:p-6 shadow-xl font-sans text-black">
+          {/* Bill Slip Header with Chicken Logo & Details */}
+          <div className="flex items-center gap-2.5 sm:gap-4 pb-2.5 sm:pb-3 border-b-2 border-black">
+            <div className="shrink-0">
+              <img
+                src="/chicken_logo.jpg"
+                alt="Broilers Express"
+                className="w-14 h-14 sm:w-24 sm:h-20 object-contain rounded-md"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                }}
+              />
+            </div>
+            <div className="grow text-center pr-2 sm:pr-8">
+              <h1 className="text-lg sm:text-3xl font-black tracking-wide text-black uppercase leading-tight">
+                BROILERS EXPRESS
+              </h1>
+              <p className="text-[11px] sm:text-sm font-extrabold text-slate-800 tracking-wider mt-0.5 sm:mt-1">
+                Motton Market , Jaysingpur
+              </p>
+              <p className="text-[10px] sm:text-xs font-bold text-black mt-0.5">
+                Mbl -: 9326155311 To 14
+              </p>
+              <p className="text-[10px] sm:text-xs font-bold text-black">
+                Javed Bhai : 9326155315
+              </p>
+            </div>
           </div>
-          <div className="grow text-center pr-12">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-wide text-black uppercase leading-tight">
-              BROILERS EXPRESS
-            </h1>
-            <p className="text-xs sm:text-sm font-extrabold text-slate-800 tracking-wider mt-1">
-              Motton Market , Jaysingpur
-            </p>
-            <p className="text-xs font-bold text-black mt-0.5">
-              Mbl -: 9326155311 To 14
-            </p>
-            <p className="text-xs font-bold text-black">
-              Javed Bhai : 9326155315
-            </p>
-          </div>
-        </div>
 
-        {/* Wholesale & Retail Dealers Banner */}
-        <div className="text-center font-black italic text-sm tracking-wider py-1.5 border-b-2 border-black bg-slate-50">
-          Wholesale &amp; Retail Dealers
-        </div>
-
-        {/* Bill Metadata Row */}
-        <div className="flex justify-between items-center px-4 py-2 border-b-2 border-black text-xs font-bold bg-white">
-          <div>
-            Bill No : <span className="font-black text-blue-900 text-sm">{bill.billNumber}</span>
+          {/* Wholesale & Retail Dealers Banner */}
+          <div className="text-center font-black italic text-xs sm:text-sm tracking-wider py-1 sm:py-1.5 border-b-2 border-black bg-slate-50">
+            Wholesale &amp; Retail Dealers
           </div>
-          <div>
-            Cust ID : <span className="font-black text-emerald-900 text-sm">{bill.customer.customerCode}</span>
-          </div>
-          <div>
-            Date : <span className="font-black text-slate-900 text-sm">{new Date(bill.billDate).toLocaleDateString('en-IN')}</span>
-          </div>
-        </div>
 
-        {/* Customer Name Row */}
-        <div className="px-4 py-2.5 border-b-2 border-black text-xs font-extrabold uppercase">
-          Name : <span className="text-sm font-black text-black">{bill.customer.businessName || bill.customer.customerName}</span>
-          {bill.customer.businessName && bill.customer.businessName !== bill.customer.customerName && (
-            <span className="text-slate-600 font-semibold normal-case ml-2 text-xs">({bill.customer.customerName})</span>
-          )}
-        </div>
+          {/* Bill Metadata Row */}
+          <div className="flex flex-wrap sm:flex-nowrap justify-between items-center gap-1 px-2.5 sm:px-4 py-1.5 sm:py-2 border-b-2 border-black text-[11px] sm:text-xs font-bold bg-white">
+            <div>
+              Bill No : <span className="font-black text-blue-900 text-xs sm:text-sm">#{bill.billNumber}</span>
+            </div>
+            <div>
+              Cust ID : <span className="font-black text-emerald-900 text-xs sm:text-sm">{bill.customer.customerCode}</span>
+            </div>
+            <div>
+              Date : <span className="font-black text-slate-900 text-xs sm:text-sm">{new Date(bill.billDate).toLocaleDateString('en-IN')}</span>
+            </div>
+          </div>
 
-        {/* Items Table Container (Continuous Column Look) */}
-        <div className="border-b-2 border-black min-h-[220px] flex flex-col justify-between">
-          <table className="w-full text-xs border-collapse table-fixed">
-            <thead>
-              <tr className="border-b-2 border-black bg-slate-100 font-black text-black">
-                <th className="py-2.5 px-3 text-center border-r-2 border-black w-[18%]">Qty</th>
-                <th className="py-2.5 px-3 text-center border-r-2 border-black w-[32%]">Weight</th>
-                <th className="py-2.5 px-3 text-center border-r-2 border-black w-[22%]">Rate</th>
-                <th className="py-2.5 px-3 text-right w-[28%]">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bill.items.map((item, idx) => (
-                <tr key={item.id || idx}>
-                  <td className="py-2 px-3 text-center border-r-2 border-black font-extrabold font-mono text-sm">{item.quantity}</td>
-                  <td className="py-2 px-3 text-center border-r-2 border-black font-extrabold font-mono text-sm">{Number(item.weight).toFixed(3)}</td>
-                  <td className="py-2 px-3 text-center border-r-2 border-black font-extrabold font-mono text-sm">{Number(item.rate).toFixed(2)}</td>
-                  <td className="py-2 px-3 text-right font-black font-mono text-sm text-black">{fmt(item.amount)}</td>
+          {/* Customer Name Row */}
+          <div className="px-2.5 sm:px-4 py-1.5 sm:py-2.5 border-b-2 border-black text-[11px] sm:text-xs font-extrabold uppercase">
+            Name : <span className="text-xs sm:text-sm font-black text-black">{bill.customer.businessName || bill.customer.customerName}</span>
+            {bill.customer.businessName && bill.customer.businessName !== bill.customer.customerName && (
+              <span className="text-slate-600 font-semibold normal-case ml-1.5 text-[10px] sm:text-xs">({bill.customer.customerName})</span>
+            )}
+          </div>
+
+          {/* Items Table Container (Continuous Column Look) */}
+          <div className="border-b-2 border-black min-h-[160px] sm:min-h-[220px] flex flex-col justify-between">
+            <table className="w-full text-[11px] sm:text-xs border-collapse table-fixed">
+              <thead>
+                <tr className="border-b-2 border-black bg-slate-100 font-black text-black">
+                  <th className="py-1.5 sm:py-2.5 px-1.5 sm:px-3 text-center border-r-2 border-black w-[18%]">Qty</th>
+                  <th className="py-1.5 sm:py-2.5 px-1.5 sm:px-3 text-center border-r-2 border-black w-[32%]">Weight</th>
+                  <th className="py-1.5 sm:py-2.5 px-1.5 sm:px-3 text-center border-r-2 border-black w-[22%]">Rate</th>
+                  <th className="py-1.5 sm:py-2.5 px-1.5 sm:px-3 text-right w-[28%]">Amount</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {bill.items.map((item, idx) => (
+                  <tr key={item.id || idx}>
+                    <td className="py-1.5 sm:py-2 px-1.5 sm:px-3 text-center border-r-2 border-black font-extrabold font-mono text-xs sm:text-sm">{item.quantity}</td>
+                    <td className="py-1.5 sm:py-2 px-1.5 sm:px-3 text-center border-r-2 border-black font-extrabold font-mono text-xs sm:text-sm">{Number(item.weight).toFixed(3)}</td>
+                    <td className="py-1.5 sm:py-2 px-1.5 sm:px-3 text-center border-r-2 border-black font-extrabold font-mono text-xs sm:text-sm">{Number(item.rate).toFixed(2)}</td>
+                    <td className="py-1.5 sm:py-2 px-1.5 sm:px-3 text-right font-black font-mono text-xs sm:text-sm text-black">{fmt(item.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
 
-          {/* Blank column extender fill to match physical bill book receipt */}
-          <div className="flex w-full grow min-h-[90px]">
-            <div className="border-r-2 border-black w-[18%]"></div>
-            <div className="border-r-2 border-black w-[32%]"></div>
-            <div className="border-r-2 border-black w-[22%]"></div>
-            <div className="w-[28%]"></div>
-          </div>
-        </div>
-
-        {/* Summary Breakdown (3-Tier Exact Match) */}
-        <div className="border-b-2 border-black">
-          {/* Tier 1: Bill Total & Previous Dues */}
-          <div className="py-2 px-4 space-y-1">
-            <div className="flex justify-end items-center gap-4 text-xs">
-              <span className="font-extrabold text-black w-44 text-right">Bill Total :</span>
-              <span className="font-mono font-black text-sm text-black w-32 text-right">{fmt(grandTotal)}</span>
-            </div>
-            <div className="flex justify-end items-center gap-4 text-xs">
-              <span className="font-extrabold text-black w-44 text-right">Previous Bill Dues :</span>
-              <span className="font-mono font-black text-sm text-amber-900 w-32 text-right">{fmt(previousDue)}</span>
+            {/* Blank column extender fill to match physical bill book receipt */}
+            <div className="flex w-full grow min-h-[60px] sm:min-h-[90px]">
+              <div className="border-r-2 border-black w-[18%]"></div>
+              <div className="border-r-2 border-black w-[32%]"></div>
+              <div className="border-r-2 border-black w-[22%]"></div>
+              <div className="w-[28%]"></div>
             </div>
           </div>
 
-          {/* Tier 2: Gross Total & Paid Amt */}
-          <div className="py-2 px-4 space-y-1 border-t-2 border-black">
-            <div className="flex justify-end items-center gap-4 text-xs">
-              <span className="font-black text-black w-44 text-right">Gross Total :</span>
-              <span className="font-mono font-black text-sm text-black w-32 text-right">{fmt(grossTotal)}</span>
+          {/* Summary Breakdown (3-Tier Exact Match) */}
+          <div className="border-b-2 border-black">
+            {/* Tier 1: Bill Total & Previous Dues */}
+            <div className="py-1.5 sm:py-2 px-2.5 sm:px-4 space-y-1">
+              <div className="flex justify-end items-center gap-2 sm:gap-4 text-[11px] sm:text-xs">
+                <span className="font-extrabold text-black">Bill Total :</span>
+                <span className="font-mono font-black text-xs sm:text-sm text-black w-24 sm:w-32 text-right">{fmt(grandTotal)}</span>
+              </div>
+              <div className="flex justify-end items-center gap-2 sm:gap-4 text-[11px] sm:text-xs">
+                <span className="font-extrabold text-black">Previous Bill Dues :</span>
+                <span className="font-mono font-black text-xs sm:text-sm text-amber-900 w-24 sm:w-32 text-right">{fmt(previousDue)}</span>
+              </div>
             </div>
-            <div className="flex justify-end items-center gap-4 text-xs">
-              <span className="font-extrabold text-black w-44 text-right">Paid Amt :</span>
-              <span className="font-mono font-black text-sm text-emerald-800 w-32 text-right">{fmt(paidAmount)}</span>
+
+            {/* Tier 2: Gross Total & Paid Amt */}
+            <div className="py-1.5 sm:py-2 px-2.5 sm:px-4 space-y-1 border-t-2 border-black">
+              <div className="flex justify-end items-center gap-2 sm:gap-4 text-[11px] sm:text-xs">
+                <span className="font-black text-black">Gross Total :</span>
+                <span className="font-mono font-black text-xs sm:text-sm text-black w-24 sm:w-32 text-right">{fmt(grossTotal)}</span>
+              </div>
+              <div className="flex justify-end items-center gap-2 sm:gap-4 text-[11px] sm:text-xs">
+                <span className="font-extrabold text-black">Paid Amt :</span>
+                <span className="font-mono font-black text-xs sm:text-sm text-emerald-800 w-24 sm:w-32 text-right">{fmt(paidAmount)}</span>
+              </div>
+            </div>
+
+            {/* Tier 3: Total Amount */}
+            <div className="py-2 sm:py-2.5 px-2.5 sm:px-4 border-t-2 border-black bg-slate-50">
+              <div className="flex justify-end items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+                <span className="font-black text-black text-sm sm:text-base">Total Amount :</span>
+                <span className="font-mono font-black text-base sm:text-lg text-black w-28 sm:w-32 text-right">₹{fmt(totalAmount)}</span>
+              </div>
             </div>
           </div>
 
-          {/* Tier 3: Total Amount */}
-          <div className="py-2.5 px-4 border-t-2 border-black bg-slate-50">
-            <div className="flex justify-end items-center gap-4 text-sm">
-              <span className="font-black text-black w-44 text-right text-base">Total Amount :</span>
-              <span className="font-mono font-black text-lg text-black w-32 text-right">₹{fmt(totalAmount)}</span>
+          {/* Footer */}
+          <div className="pt-3 sm:pt-4 flex justify-between items-end text-[10px] sm:text-xs">
+            <div className="text-[9px] sm:text-[10px] text-slate-500 italic">
+              Computer Generated Invoice — Broilers Express
             </div>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="pt-4 flex justify-between items-end text-xs">
-          <div className="text-[10px] text-slate-500 italic">
-            Computer Generated Invoice — Broilers Express
-          </div>
-          <div className="text-right">
-            <p className="font-black text-sm text-black">For - Broilers Express</p>
+            <div className="text-right">
+              <p className="font-black text-xs sm:text-sm text-black">For - Broilers Express</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
   </div>
 );
 }

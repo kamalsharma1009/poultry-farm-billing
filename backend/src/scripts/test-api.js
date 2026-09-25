@@ -40,8 +40,7 @@ async function runTest() {
   };
 
   // 2. Create Customer (unique mobile)
-  const randomDigits = String(Math.floor(10000000 + Math.random() * 90000000));
-  const mobile = `9${randomDigits}`;
+  const mobile = `9${String(Date.now()).slice(-9)}`;
 
   const custRes = await request({
     hostname: 'localhost',
