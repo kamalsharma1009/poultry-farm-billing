@@ -5,6 +5,7 @@ const seedAdmin = require('./scripts/seed-admin');
 const { getOrCreateFinancialYear } = require('./utils/fy.utils');
 
 const PORT = process.env.PORT || 5000;
+const HOST = '0.0.0.0'; // Required for Render/cloud deployment
 
 async function startServer() {
   try {
@@ -32,8 +33,8 @@ async function startServer() {
     // Ensure initial admin user exists if users table is empty
     await seedAdmin();
 
-    app.listen(PORT, () => {
-      console.log(`🚀 Broilers Express Backend running on http://localhost:${PORT}`);
+    app.listen(PORT, HOST, () => {
+      console.log(`🚀 Broilers Express Backend running on http://${HOST}:${PORT}`);
     });
   } catch (error) {
     console.error('[Server Startup Error]', error);
