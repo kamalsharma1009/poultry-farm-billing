@@ -22,12 +22,13 @@ function formatAmount(val) {
 }
 
 async function generateBillPDF(bill, customer, settings) {
+  const cust = customer || bill.customer || {};
   const businessName = settings?.businessName || 'BROILERS EXPRESS';
   const businessAddress = settings?.address || 'Motton Market, Jaysingpur';
   const businessMobile = settings?.mobile || '9326155311';
   const gstNumber = settings?.gstNumber || '';
 
-  const formattedDate = new Date(bill.billDate).toLocaleDateString('en-IN', {
+  const formattedDate = new Date(bill.billDate || bill.createdAt || new Date()).toLocaleDateString('en-IN', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -355,14 +356,14 @@ async function generateBillPDF(bill, customer, settings) {
         <!-- BILL META -->
         <div class="bill-meta">
           <div class="meta-item">Bill No : <strong>${bill.billNumber}</strong></div>
-          <div class="meta-item">Cust ID : <strong>${customer.customerCode}</strong></div>
+          <div class="meta-item">Cust ID : <strong>${cust.customerCode || 'N/A'}</strong></div>
           <div class="meta-item">Date : <strong>${formattedDate}</strong></div>
         </div>
 
         <!-- CUSTOMER NAME -->
         <div class="customer-row">
-          Name : <span class="cust-name">${customer.businessName || customer.customerName}</span>
-          ${customer.businessName && customer.businessName !== customer.customerName ? ` <span style="font-weight:600; font-size:11px;">(${customer.customerName})</span>` : ''}
+          Name : <span class="cust-name">${cust.businessName || cust.customerName || 'Cash Customer'}</span>
+          ${cust.businessName && cust.customerName && cust.businessName !== cust.customerName ? ` <span style="font-weight:600; font-size:11px;">(${cust.customerName})</span>` : ''}
         </div>
 
         <!-- ITEMS TABLE (with continuous column lines) -->
@@ -452,7 +453,8 @@ async function generateBillPDF(bill, customer, settings) {
         '--disable-setuid-sandbox',
         '--disable-web-security',
         '--disable-dev-shm-usage',
-        '--single-process'
+        '--disable-gpu',
+        '--no-zygote'
       ],
     });
     const page = await browser.newPage();

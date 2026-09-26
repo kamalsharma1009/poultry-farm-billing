@@ -7,6 +7,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "build": "node node_modules/prisma/build/index.js generate && node node_modules/puppeteer/lib/puppeteer/node/cli.js browsers install chrome",
+    "postinstall": "node node_modules/puppeteer/lib/puppeteer/node/cli.js browsers install chrome",
     "prisma:generate": "node node_modules/prisma/build/index.js generate",
     "prisma:db-push": "node node_modules/prisma/build/index.js db push",
     "prisma:migrate": "node node_modules/prisma/build/index.js migrate deploy"
