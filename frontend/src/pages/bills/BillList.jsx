@@ -45,11 +45,24 @@ export default function BillList() {
   // PDF Download Helper
   const handleDownloadPDF = async (billId, billNumber) => {
     try {
-      const response = await fetch(`/api/bills/${billId}/pdf`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+      const token = localStorage.getItem('token');
+      const targetUrl = token
+        ? `/api/bills/${billId}/pdf?token=${encodeURIComponent(token)}`
+        : `/api/bills/public/${billId}/pdf`;
+
+      const response = await fetch(targetUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/pdf')) {
+        throw new Error('Non-PDF response returned');
+      }
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -57,19 +70,24 @@ export default function BillList() {
       a.download = `Bill_${billNumber}_BroilersExpress.pdf`;
       document.body.appendChild(a);
       a.click();
+      window.URL.revokeObjectURL(url);
       a.remove();
     } catch (err) {
-      alert('Failed to download PDF');
+      console.warn('Direct PDF download fallback to public link:', err);
+      // Fallback: direct browser navigation to public PDF link
+      const a = document.createElement('a');
+      a.href = `/api/bills/public/${billId}/pdf`;
+      a.download = `Bill_${billNumber}_BroilersExpress.pdf`;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     }
   };
 
-  // Print PDF Helper
+  // Print Slip Helper - Opens bill view and auto-triggers print dialog
   const handlePrintPDF = (billId) => {
-    const token = localStorage.getItem('token');
-    const printWindow = window.open(`/api/bills/${billId}/pdf?token=${token}`, '_blank');
-    if (printWindow) {
-      printWindow.focus();
-    }
+    window.open(`/bills/${billId}?print=true`, '_blank');
   };
 
   return (

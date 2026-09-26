@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import Header from '../../components/common/Header';
@@ -9,6 +9,7 @@ import { ArrowLeft, Download, Printer, MessageSquare, AlertOctagon, Copy, Check,
 
 export default function BillView() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [copiedLink, setCopiedLink] = useState(false);
@@ -50,6 +51,16 @@ export default function BillView() {
   const bill = data?.bill || data?.data?.bill;
   const whatsappInfo = data?.whatsappInfo || data?.data?.whatsappInfo || {};
 
+  // Auto trigger print when requested via ?print=true
+  useEffect(() => {
+    if (bill && searchParams.get('print') === 'true') {
+      const timer = setTimeout(() => {
+        window.print();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [bill, searchParams]);
+
   if (isLoading) return <LoadingSpinner fullScreen label="Loading bill..." />;
   if (error || !bill) {
     return (
@@ -74,12 +85,24 @@ export default function BillView() {
 
   const handleDownloadPDF = async () => {
     try {
-      const response = await fetch(`/api/bills/${bill.id}/pdf`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
+      const token = localStorage.getItem('token');
+      const targetUrl = token
+        ? `/api/bills/${bill.id}/pdf?token=${encodeURIComponent(token)}`
+        : `/api/bills/public/${bill.id}/pdf`;
+
+      const response = await fetch(targetUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      if (!response.ok) throw new Error('Failed');
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/pdf')) {
+        throw new Error('Non-PDF response returned');
+      }
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -90,26 +113,20 @@ export default function BillView() {
       window.URL.revokeObjectURL(url);
       a.remove();
     } catch (err) {
-      alert('Failed to download PDF. Please try again.');
+      console.warn('Direct PDF download fallback to public link:', err);
+      // Fallback: direct browser navigation to public PDF link
+      const a = document.createElement('a');
+      a.href = `/api/bills/public/${bill.id}/pdf`;
+      a.download = `Bill_${bill.billNumber}_BroilersExpress.pdf`;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     }
   };
 
-  const handlePrintPDF = async () => {
-    try {
-      const response = await fetch(`/api/bills/${bill.id}/pdf`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const printWindow = window.open(url, '_blank');
-      if (printWindow) {
-        printWindow.focus();
-      }
-    } catch (err) {
-      alert('Failed to open PDF for printing.');
-    }
+  const handlePrintPDF = () => {
+    window.print();
   };
 
   const handleSharePDFWhatsApp = () => {
