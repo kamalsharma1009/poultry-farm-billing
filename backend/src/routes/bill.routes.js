@@ -35,7 +35,8 @@ router.get('/public/:id/pdf', async (req, res, next) => {
 
     res.send(pdfBuffer);
   } catch (error) {
-    next(error);
+    console.error('PDF Generation Error:', error);
+    res.status(500).json({ success: false, message: 'Internal Server Error', error: error.message, stack: error.stack });
   }
 });
 
