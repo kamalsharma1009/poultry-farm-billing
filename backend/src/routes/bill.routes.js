@@ -238,8 +238,13 @@ router.post('/', async (req, res, next) => {
     const discount = Math.round((body.discount || 0) * 100) / 100;
     const otherCharges = Math.round((body.otherCharges || 0) * 100) / 100;
     const calculatedGrandTotal = Math.round((calculatedSubtotal - discount + otherCharges) * 100) / 100;
-    const previousDue = Math.round((body.previousDue || 0) * 100) / 100;
+    
+    // Use backend source of truth for previous due
+    const previousDue = Number(customer.currentDue || 0);
     const paidAmount = Math.round((body.paidAmount || 0) * 100) / 100;
+    
+    // Calculate new outstanding balance for the customer
+    const newCustomerDue = Math.round((previousDue + calculatedGrandTotal - paidAmount) * 100) / 100;
 
     // 4. Load settings and generate next bill number
     const bizSettings = await prisma.businessSettings.findFirst();
@@ -276,6 +281,12 @@ router.post('/', async (req, res, next) => {
           financialYear: true,
           items: true,
         },
+      });
+
+      // Update the customer's outstanding balance
+      await tx.customer.update({
+        where: { id: customer.id },
+        data: { currentDue: newCustomerDue },
       });
 
       return bill;
@@ -344,10 +355,25 @@ router.patch('/:id/cancel', async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Bill is already cancelled' });
     }
 
-    const cancelledBill = await prisma.bill.update({
-      where: { id },
-      data: { status: 'CANCELLED' },
-      include: { customer: true, items: true },
+    const cancelledBill = await prisma.$transaction(async (tx) => {
+      const bill = await tx.bill.update({
+        where: { id },
+        data: { status: 'CANCELLED' },
+        include: { customer: true, items: true },
+      });
+
+      // Revert the customer's outstanding balance
+      const effectOnDue = Number(bill.grandTotal) - Number(bill.paidAmount);
+      await tx.customer.update({
+        where: { id: bill.customerId },
+        data: {
+          currentDue: {
+            decrement: effectOnDue,
+          },
+        },
+      });
+
+      return bill;
     });
 
     res.json({
