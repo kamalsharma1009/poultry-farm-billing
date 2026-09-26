@@ -387,4 +387,53 @@ router.patch('/:id/cancel', async (req, res, next) => {
   }
 });
 
+// DELETE /api/bills/:id - Permanently delete bill and revert customer balance
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const existingBill = await prisma.bill.findFirst({
+      where: isUuid ? { id } : { billNumber: id },
+      include: { customer: true },
+    });
+
+    if (!existingBill) {
+      return res.status(404).json({ success: false, message: 'Bill not found' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // If the bill was not cancelled, revert its balance impact on customer
+      if (existingBill.status === 'GENERATED' && existingBill.customerId) {
+        const effectOnDue = Number(existingBill.grandTotal) - Number(existingBill.paidAmount);
+        await tx.customer.update({
+          where: { id: existingBill.customerId },
+          data: {
+            currentDue: {
+              decrement: effectOnDue,
+            },
+          },
+        });
+      }
+
+      // Delete items
+      await tx.billItem.deleteMany({
+        where: { billId: existingBill.id },
+      });
+
+      // Delete bill
+      await tx.bill.delete({
+        where: { id: existingBill.id },
+      });
+    }, { maxWait: 10000, timeout: 30000 });
+
+    res.json({
+      success: true,
+      message: `Bill #${existingBill.billNumber} deleted permanently and balance adjusted`,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

@@ -17,6 +17,7 @@ const customerSchema = z.object({
   alternateMobile: z.string().optional().nullable().refine(val => !val || IndianMobileRegex.test(val), 'Invalid alternate mobile number'),
   address: z.string().trim().optional().nullable(),
   gstNumber: z.string().trim().optional().nullable().refine(val => !val || GstRegex.test(val.toUpperCase()), 'Invalid GSTIN format'),
+  currentDue: z.coerce.number().min(0, 'Due cannot be negative').optional().default(0),
 });
 
 /**
@@ -84,6 +85,7 @@ router.get('/', async (req, res, next) => {
           address: true,
           gstNumber: true,
           isActive: true,
+          currentDue: true,
           createdAt: true,
           _count: {
             select: { bills: true },
@@ -184,6 +186,7 @@ router.post('/', async (req, res, next) => {
           alternateMobile: validatedData.alternateMobile || null,
           address: validatedData.address || null,
           gstNumber: validatedData.gstNumber ? validatedData.gstNumber.toUpperCase() : null,
+          currentDue: validatedData.currentDue !== undefined ? parseFloat(validatedData.currentDue) : 0,
           createdBy: req.user.id,
         },
       });
@@ -231,6 +234,7 @@ router.put('/:id', async (req, res, next) => {
         alternateMobile: validatedData.alternateMobile || null,
         address: validatedData.address || null,
         gstNumber: validatedData.gstNumber ? validatedData.gstNumber.toUpperCase() : null,
+        currentDue: validatedData.currentDue !== undefined ? parseFloat(validatedData.currentDue) : existing.currentDue,
       },
     });
 
@@ -263,6 +267,58 @@ router.patch('/:id/status', async (req, res, next) => {
       success: true,
       message: `Customer ${isActive ? 'activated' : 'deactivated'} successfully`,
       data: { customer: updated },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// DELETE /api/customers/:id - Delete customer and their billing records
+router.delete('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const existing = await prisma.customer.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { bills: true },
+        },
+      },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Customer not found' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      // Find all bills for this customer
+      const bills = await tx.bill.findMany({
+        where: { customerId: id },
+        select: { id: true },
+      });
+
+      const billIds = bills.map((b) => b.id);
+      if (billIds.length > 0) {
+        // Delete all bill items first
+        await tx.billItem.deleteMany({
+          where: { billId: { in: billIds } },
+        });
+        // Delete all bills
+        await tx.bill.deleteMany({
+          where: { id: { in: billIds } },
+        });
+      }
+
+      // Delete customer
+      await tx.customer.delete({
+        where: { id },
+      });
+    }, { maxWait: 10000, timeout: 30000 });
+
+    res.json({
+      success: true,
+      message: `Customer "${existing.customerName}" (${existing.customerCode}) and all associated records deleted successfully`,
     });
   } catch (error) {
     next(error);

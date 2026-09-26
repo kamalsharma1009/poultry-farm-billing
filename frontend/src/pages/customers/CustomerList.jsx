@@ -5,12 +5,15 @@ import api from '../../lib/api';
 import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
-import { Search, PlusCircle, UserCheck, UserX, Eye, Edit, FilePlus, ChevronLeft, ChevronRight } from 'lucide-react';
+import AddCustomerModal from '../../components/common/AddCustomerModal';
+import { Search, PlusCircle, UserCheck, UserX, Eye, Edit, FilePlus, ChevronLeft, ChevronRight, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function CustomerList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [page, setPage] = useState(1);
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const [customerToDelete, setCustomerToDelete] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -31,6 +34,19 @@ export default function CustomerList() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries(['customers']);
+    },
+  });
+
+  const deleteCustomerMutation = useMutation({
+    mutationFn: async (id) => {
+      return api.delete(`/customers/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['customers']);
+      setCustomerToDelete(null);
+    },
+    onError: (err) => {
+      alert(err.message || 'Failed to delete customer');
     },
   });
 
@@ -73,13 +89,14 @@ export default function CustomerList() {
             <option value="inactive">Inactive Only</option>
           </select>
 
-          <Link
-            to="/customers/new"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-sm transition-all shadow-sm hover:shadow-emerald-500/20 hover:-translate-y-0.5"
+          <button
+            type="button"
+            onClick={() => setShowAddCustomerModal(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-sm transition-all shadow-sm hover:shadow-emerald-500/20 hover:-translate-y-0.5 cursor-pointer"
           >
             <PlusCircle className="w-4 h-4" />
             <span>Add Customer</span>
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -97,13 +114,14 @@ export default function CustomerList() {
             }
             actionButton={
               !search && (
-                <Link
-                  to="/customers/new"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm shadow-sm"
+                <button
+                  type="button"
+                  onClick={() => setShowAddCustomerModal(true)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm shadow-sm cursor-pointer"
                 >
                   <PlusCircle className="w-4 h-4" />
                   <span>Add First Customer</span>
-                </Link>
+                </button>
               )
             }
           />
@@ -116,6 +134,7 @@ export default function CustomerList() {
                     <th className="px-6 py-3.5">Customer ID</th>
                     <th className="px-6 py-3.5">Customer / Business Name</th>
                     <th className="px-6 py-3.5">Mobile</th>
+                    <th className="px-6 py-3.5 text-right">Current Due</th>
                     <th className="px-6 py-3.5">Address</th>
                     <th className="px-6 py-3.5 text-center">Status</th>
                     <th className="px-6 py-3.5 text-right">Actions</th>
@@ -137,6 +156,17 @@ export default function CustomerList() {
                         {c.mobile}
                         {c.alternateMobile && (
                           <div className="text-[11px] text-slate-400">Alt: {c.alternateMobile}</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {Number(c.currentDue || 0) > 0 ? (
+                          <span className="inline-block font-mono font-bold text-xs text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded">
+                            ₹{Number(c.currentDue).toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="font-mono text-xs font-semibold text-slate-400">
+                            ₹0.00
+                          </span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-xs max-w-xs truncate text-slate-500">
@@ -175,6 +205,13 @@ export default function CustomerList() {
                           >
                             <Eye className="w-4 h-4" />
                           </Link>
+                          <Link
+                            to={`/customers/${c.id}/edit`}
+                            title="Edit customer details"
+                            className="p-1.5 text-slate-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Link>
                           <button
                             onClick={() =>
                               toggleStatusMutation.mutate({ id: c.id, isActive: !c.isActive })
@@ -182,11 +219,18 @@ export default function CustomerList() {
                             title={c.isActive ? 'Deactivate Customer' : 'Activate Customer'}
                             className={`p-1.5 rounded-lg transition-colors ${
                               c.isActive
-                                ? 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
                                 : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
                             }`}
                           >
                             {c.isActive ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={() => setCustomerToDelete(c)}
+                            title="Delete Customer"
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -225,6 +269,77 @@ export default function CustomerList() {
           </>
         )}
       </div>
+
+      {/* Add New Customer Modal */}
+      <AddCustomerModal
+        isOpen={showAddCustomerModal}
+        onClose={() => setShowAddCustomerModal(false)}
+        initialQuery={search}
+        onCustomerCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['customers'] });
+        }}
+      />
+
+      {/* Delete Customer Confirmation Modal */}
+      {customerToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">Delete Customer</h3>
+                <p className="text-xs text-slate-500">Confirm permanent removal</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Name:</span>
+                <span className="font-bold text-slate-900">{customerToDelete.customerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Business / Code:</span>
+                <span className="font-medium text-slate-700">{customerToDelete.businessName} ({customerToDelete.customerCode})</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Outstanding Due:</span>
+                <span className="font-bold text-amber-700">₹{Number(customerToDelete.currentDue || 0).toFixed(2)}</span>
+              </div>
+              {customerToDelete._count?.bills > 0 && (
+                <div className="mt-2 pt-2 border-t border-slate-200 text-red-600 font-semibold text-[11px]">
+                  ⚠️ Warning: This customer has {customerToDelete._count.bills} existing bill(s). Deleting will also remove all their bills and transaction history.
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-600">
+              Are you sure you want to permanently delete this customer? This action cannot be undone.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setCustomerToDelete(null)}
+                disabled={deleteCustomerMutation.isLoading}
+                className="px-4 py-2 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteCustomerMutation.mutate(customerToDelete.id)}
+                disabled={deleteCustomerMutation.isLoading}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-xl shadow-sm transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{deleteCustomerMutation.isLoading ? 'Deleting...' : 'Delete Customer'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

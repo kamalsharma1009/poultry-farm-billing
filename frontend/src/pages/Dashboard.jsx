@@ -1,13 +1,16 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import Header from '../components/common/Header';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import EmptyState from '../components/common/EmptyState';
+import AddCustomerModal from '../components/common/AddCustomerModal';
 import { FileText, IndianRupee, Users, PlusCircle, ArrowRight, FilePlus, Eye } from 'lucide-react';
 
 export default function Dashboard() {
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ['dashboardSummary'],
     queryFn: async () => {
@@ -99,13 +102,14 @@ export default function Dashboard() {
             <PlusCircle className="w-4 h-4" />
             <span>Create New Bill</span>
           </Link>
-          <Link
-            to="/customers/new"
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-xs transition-all hover:-translate-y-0.5"
+          <button
+            type="button"
+            onClick={() => setShowAddCustomerModal(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-black text-white font-bold text-xs rounded-xl shadow-xs transition-all hover:-translate-y-0.5 cursor-pointer"
           >
             <FilePlus className="w-4 h-4 text-slate-300" />
             <span>Add Customer</span>
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -199,6 +203,15 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Add New Customer Modal */}
+      <AddCustomerModal
+        isOpen={showAddCustomerModal}
+        onClose={() => setShowAddCustomerModal(false)}
+        onCustomerCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
+        }}
+      />
     </div>
   );
 }

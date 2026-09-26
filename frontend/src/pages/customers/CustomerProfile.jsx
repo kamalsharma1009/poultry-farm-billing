@@ -1,20 +1,36 @@
-import React from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../lib/api';
 import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
-import { ArrowLeft, Edit, FilePlus, Eye, Phone, MapPin, Building, Hash } from 'lucide-react';
+import { ArrowLeft, Edit, FilePlus, Eye, Phone, MapPin, Building, Hash, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function CustomerProfile() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['customer', id],
     queryFn: async () => {
       const res = await api.get(`/customers/${id}`);
       return res.data;
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      return api.delete(`/customers/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['customers']);
+      navigate('/customers');
+    },
+    onError: (err) => {
+      alert(err.message || 'Failed to delete customer');
     },
   });
 
@@ -69,7 +85,7 @@ export default function CustomerProfile() {
               className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 font-semibold text-sm rounded-lg hover:bg-slate-50 transition-colors"
             >
               <Edit className="w-4 h-4" />
-              <span>Edit Customer</span>
+              <span>Edit</span>
             </Link>
             <Link
               to={`/bills/new?customerId=${customer.id}`}
@@ -78,6 +94,14 @@ export default function CustomerProfile() {
               <FilePlus className="w-4 h-4" />
               <span>Create Bill</span>
             </Link>
+            <button
+              type="button"
+              onClick={() => setShowDeleteModal(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 border border-red-200 text-red-600 hover:bg-red-50 font-semibold text-sm rounded-lg transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>Delete</span>
+            </button>
           </div>
         </div>
 
@@ -109,6 +133,23 @@ export default function CustomerProfile() {
               <p className="font-mono font-bold text-slate-800">{customer.gstNumber || 'Unregistered'}</p>
             </div>
           </div>
+        </div>
+
+        {/* Outstanding Dues Banner */}
+        <div className="mt-6 pt-5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 p-4 bg-gradient-to-r from-amber-50 to-orange-50/50 border border-amber-200/80 rounded-xl">
+          <div>
+            <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">Current Outstanding Balance</p>
+            <p className="text-2xl font-mono font-black text-amber-950 mt-0.5">
+              ₹{Number(customer.currentDue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </p>
+          </div>
+          <Link
+            to={`/bills/new?customerId=${customer.id}`}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-xs transition-colors"
+          >
+            <FilePlus className="w-3.5 h-3.5" />
+            <span>Generate Bill with this Due</span>
+          </Link>
         </div>
       </div>
 
@@ -185,6 +226,67 @@ export default function CustomerProfile() {
           </div>
         )}
       </div>
+
+      {/* Delete Customer Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">Delete Customer</h3>
+                <p className="text-xs text-slate-500">Confirm permanent removal</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Customer:</span>
+                <span className="font-bold text-slate-900">{customer.customerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Business / Code:</span>
+                <span className="font-medium text-slate-700">{customer.businessName} ({customer.customerCode})</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Current Due:</span>
+                <span className="font-bold text-amber-700">₹{Number(customer.currentDue || 0).toFixed(2)}</span>
+              </div>
+              {bills.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-slate-200 text-red-600 font-semibold text-[11px]">
+                  ⚠️ Warning: Deleting this customer will also permanently delete {bills.length} associated bill(s).
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-600">
+              Are you sure you want to delete this customer? This action is permanent and cannot be undone.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleteMutation.isLoading}
+                className="px-4 py-2 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isLoading}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-xl shadow-sm transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{deleteMutation.isLoading ? 'Deleting...' : 'Yes, Delete Customer'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

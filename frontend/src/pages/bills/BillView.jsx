@@ -5,13 +5,14 @@ import api from '../../lib/api';
 import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
-import { ArrowLeft, Download, Printer, MessageSquare, AlertOctagon, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Download, Printer, MessageSquare, AlertOctagon, Copy, Check, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function BillView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['bill', id],
@@ -29,6 +30,20 @@ export default function BillView() {
     onSuccess: () => {
       queryClient.invalidateQueries(['bill', id]);
       queryClient.invalidateQueries(['bills']);
+    },
+  });
+
+  const deleteBillMutation = useMutation({
+    mutationFn: async () => {
+      return api.delete(`/bills/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['bills']);
+      queryClient.invalidateQueries(['dashboardSummary']);
+      navigate('/bills');
+    },
+    onError: (err) => {
+      alert(err.message || 'Failed to delete bill');
     },
   });
 
@@ -216,12 +231,22 @@ export default function BillView() {
             <button
               onClick={handleCancelBill}
               disabled={cancelBillMutation.isLoading}
-              className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-semibold text-xs rounded-xl transition-colors"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold text-xs rounded-xl transition-colors"
             >
               <AlertOctagon className="w-3.5 h-3.5" />
-              <span>Cancel Bill</span>
+              <span>Cancel</span>
             </button>
           )}
+
+          {/* Delete Bill */}
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            disabled={deleteBillMutation.isLoading}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-colors shadow-xs active:scale-95"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Delete</span>
+          </button>
         </div>
       </div>
 
@@ -360,6 +385,66 @@ export default function BillView() {
           </div>
         </div>
       </div>
-  </div>
-);
+
+      {/* Delete Bill Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
+              <div className="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">Delete Bill #{bill.billNumber}</h3>
+                <p className="text-xs text-slate-500">Confirm permanent deletion</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-1.5 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Customer:</span>
+                <span className="font-bold text-slate-900">{bill.customer?.customerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Bill Date:</span>
+                <span className="font-medium text-slate-700">{new Date(bill.billDate).toLocaleDateString('en-IN')}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Bill Total:</span>
+                <span className="font-mono font-extrabold text-slate-900">₹{fmt(grandTotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Status:</span>
+                <span className="font-bold text-slate-700">{bill.status}</span>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600">
+              Are you sure you want to permanently delete this bill? If this bill was active, the customer's balance will be automatically adjusted.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleteBillMutation.isLoading}
+                className="px-4 py-2 border border-slate-300 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteBillMutation.mutate()}
+                disabled={deleteBillMutation.isLoading}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs rounded-xl shadow-sm transition-colors disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{deleteBillMutation.isLoading ? 'Deleting...' : 'Yes, Delete Bill'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

@@ -18,6 +18,7 @@ const schema = z.object({
   alternateMobile: z.string().optional().refine(val => !val || IndianMobileRegex.test(val), 'Enter valid 10-digit alternate mobile number'),
   address: z.string().trim().optional(),
   gstNumber: z.string().trim().optional().refine(val => !val || GstRegex.test(val.toUpperCase()), 'Invalid GSTIN format'),
+  currentDue: z.coerce.number().min(0, 'Due cannot be negative').optional().default(0),
 });
 
 export default function CustomerForm() {
@@ -43,6 +44,7 @@ export default function CustomerForm() {
       alternateMobile: '',
       address: '',
       gstNumber: '',
+      currentDue: 0,
     },
   });
 
@@ -58,6 +60,7 @@ export default function CustomerForm() {
           setValue('alternateMobile', c.alternateMobile || '');
           setValue('address', c.address || '');
           setValue('gstNumber', c.gstNumber || '');
+          setValue('currentDue', c.currentDue !== undefined ? Number(c.currentDue) : 0);
         } catch (err) {
           setServerError('Failed to load customer details');
         } finally {
@@ -106,6 +109,11 @@ export default function CustomerForm() {
             </p>
             <p className="text-base font-bold text-slate-900 mt-2">{createdCustomer.customerName}</p>
             <p className="text-xs text-slate-500 font-medium">{createdCustomer.businessName} • {createdCustomer.mobile}</p>
+            {Number(createdCustomer.currentDue || 0) > 0 && (
+              <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100/80 border border-amber-200 text-amber-900 rounded-lg text-xs font-bold font-mono">
+                <span>Opening Due: ₹{Number(createdCustomer.currentDue).toFixed(2)}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -247,6 +255,32 @@ export default function CustomerForm() {
             />
             {errors.gstNumber && (
               <p className="text-xs text-red-600 mt-1">{errors.gstNumber.message}</p>
+            )}
+          </div>
+
+          {/* Previous / Opening Due Balance */}
+          <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-200/90 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-bold text-amber-950">
+                Opening / Previous Due Balance (₹)
+              </label>
+              <span className="text-[11px] font-bold text-amber-800 bg-amber-100 border border-amber-300/60 px-2 py-0.5 rounded-full">
+                Past Outstanding
+              </span>
+            </div>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              {...register('currentDue')}
+              placeholder="0.00"
+              className="w-full px-3.5 py-2.5 border border-amber-300 rounded-lg text-sm font-bold font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
+            />
+            <p className="text-xs text-amber-800 font-medium">
+              Enter any existing unpaid balance from past transactions before onboarding. This will automatically sync with bill generation as previous due.
+            </p>
+            {errors.currentDue && (
+              <p className="text-xs text-red-600 mt-1">{errors.currentDue.message}</p>
             )}
           </div>
 
