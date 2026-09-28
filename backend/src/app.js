@@ -12,6 +12,9 @@ const errorHandler = require('./middleware/error.middleware');
 
 const app = express();
 
+// Trust reverse proxy (Render, Cloudflare, etc.) for correct req.protocol and host
+app.set('trust proxy', 1);
+
 // Security and middleware
 app.use(helmet({
   contentSecurityPolicy: false, // Allows streaming inline PDFs

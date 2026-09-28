@@ -122,9 +122,35 @@ export default function BillView() {
 
   const handleCopyLink = () => {
     const pdfUrl = getPublicBillPdfUrl(bill.id, whatsappInfo?.pdfUrl);
-    navigator.clipboard.writeText(pdfUrl);
+    try {
+      if (navigator?.clipboard?.writeText) {
+        navigator.clipboard.writeText(pdfUrl).catch(() => {
+          fallbackCopyText(pdfUrl);
+        });
+      } else {
+        fallbackCopyText(pdfUrl);
+      }
+    } catch {
+      fallbackCopyText(pdfUrl);
+    }
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const fallbackCopyText = (text) => {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      document.execCommand('copy');
+    } catch (e) {
+      console.warn('Copy command failed:', e);
+    }
+    textarea.remove();
   };
 
   // Pad items with empty rows to simulate standard printed receipt slip
@@ -196,12 +222,12 @@ export default function BillView() {
           <button
             onClick={handleCopyLink}
             className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl border border-slate-200 transition-colors cursor-pointer"
-            title="Copy Public Link"
+            title="Copy Public Bill PDF Link"
           >
             {copiedLink ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="text-emerald-700 font-bold">Copied!</span>
+                <span className="text-emerald-700 font-bold">PDF Link Copied!</span>
               </>
             ) : (
               <>

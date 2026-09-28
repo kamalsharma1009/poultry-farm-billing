@@ -45,8 +45,14 @@ function generateBillMessage(bill, customer, settings, pdfUrl) {
 function openWhatsAppChat(mobile, bill, customer, settings, host) {
   const formattedMobile = normalizeMobile(mobile);
   
+  // Ensure HTTPS in production if behind proxy
+  let cleanHost = host;
+  if (cleanHost && cleanHost.startsWith('http://') && !cleanHost.includes('localhost') && !cleanHost.includes('127.0.0.1')) {
+    cleanHost = cleanHost.replace('http://', 'https://');
+  }
+
   // Construct direct public PDF link if host is available
-  const pdfUrl = host ? `${host}/api/bills/public/${bill.id}/pdf` : null;
+  const pdfUrl = cleanHost ? `${cleanHost}/api/bills/public/${bill.id}/pdf` : null;
 
   const message = generateBillMessage(bill, customer, settings, pdfUrl);
   const encodedText = encodeURIComponent(message);
