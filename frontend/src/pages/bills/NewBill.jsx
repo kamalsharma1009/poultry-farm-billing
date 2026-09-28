@@ -38,7 +38,7 @@ export default function NewBill() {
   // Bill metadata
   const [billDate, setBillDate] = useState(new Date().toISOString().split('T')[0]);
   const [previousDue, setPreviousDue] = useState('0');
-  const [paidAmount, setPaidAmount] = useState('0');
+  const [paidAmount, setPaidAmount] = useState('');
 
   // Items state (starts with 1 item, quantity has placeholder "1" rather than pre-filling)
   const [items, setItems] = useState([
@@ -501,7 +501,7 @@ export default function NewBill() {
                 setSelectedCustomer(null);
                 setItems([{ productName: 'Broiler Chicken', quantity: '', weight: '', rate: '' }]);
                 setPreviousDue('0');
-                setPaidAmount('0');
+                setPaidAmount('');
               }}
               className="w-full flex items-center justify-center gap-2 py-3 px-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-700/20 active:scale-[0.99] transition-all cursor-pointer"
             >
@@ -680,78 +680,78 @@ export default function NewBill() {
           <div className="lg:col-span-7 bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between space-y-3">
             <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
               <div>
-                <h3 className="text-sm font-bold text-slate-800 leading-tight">2. Bill Items</h3>
-                <p className="text-xs text-slate-400">Qty × Weight × Rate = Amount</p>
+                <h3 className="text-base font-extrabold text-slate-900 leading-tight">2. Bill Items</h3>
+                <p className="text-xs text-slate-500 font-medium">Qty × Weight × Rate = Amount</p>
               </div>
               <button
                 type="button"
                 onClick={addItem}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs rounded-lg transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-xs sm:text-sm rounded-lg transition-colors cursor-pointer"
               >
-                <PlusCircle className="w-3.5 h-3.5" />
+                <PlusCircle className="w-4 h-4" />
                 <span>+ Add Item</span>
               </button>
             </div>
 
-            <div className="max-h-[175px] overflow-y-auto space-y-2 pr-1">
+            <div className="max-h-[220px] overflow-y-auto space-y-2.5 pr-1">
               {items.map((item, index) => {
                 const itemAmt = calculateItemAmount(item);
                 return (
                   <div
                     key={index}
-                    className="grid grid-cols-12 gap-2 items-center p-2.5 sm:p-3 bg-slate-50/80 hover:bg-slate-50 rounded-xl border border-slate-200/70 transition-all text-xs"
+                    className="grid grid-cols-12 gap-2.5 items-center p-3 sm:p-3.5 bg-slate-50/90 hover:bg-slate-50 rounded-xl border border-slate-200/80 transition-all"
                   >
                     <div className="col-span-4">
-                      <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Product</label>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Product</label>
                       <input
                         type="text"
                         value={item.productName}
                         onChange={(e) => handleItemChange(index, 'productName', e.target.value)}
                         placeholder="Product description"
-                        className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm sm:text-base text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-semibold placeholder:text-slate-400 placeholder:font-normal"
                       />
                     </div>
 
                     <div className="col-span-2">
-                      <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Qty</label>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Qty</label>
                       <input
                         type="number"
                         min="1"
                         value={item.quantity}
                         onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                         placeholder="1"
-                        className="w-full px-2 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-bold text-center"
+                        className="w-full px-2 py-2 border border-slate-300 rounded-lg text-sm sm:text-base text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-black text-center placeholder:text-slate-400 placeholder:font-normal"
                       />
                     </div>
 
                     <div className="col-span-2">
-                      <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Weight (KG)</label>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Weight (KG)</label>
                       <input
                         type="number"
                         step="0.001"
                         value={item.weight}
                         onChange={(e) => handleItemChange(index, 'weight', e.target.value)}
                         placeholder="e.g. 50"
-                        className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-bold font-mono"
+                        className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm sm:text-base text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-black font-mono placeholder:text-slate-400 placeholder:font-normal"
                       />
                     </div>
 
                     <div className="col-span-2">
-                      <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Rate (₹)</label>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Rate (₹)</label>
                       <input
                         type="number"
                         step="0.01"
                         value={item.rate}
                         onChange={(e) => handleItemChange(index, 'rate', e.target.value)}
                         placeholder="e.g. 100"
-                        className="w-full px-2.5 py-1.5 border border-slate-300 rounded-lg text-xs text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-bold font-mono"
+                        className="w-full px-2.5 py-2 border border-slate-300 rounded-lg text-sm sm:text-base text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-black font-mono placeholder:text-slate-400 placeholder:font-normal"
                       />
                     </div>
 
-                    <div className="col-span-2 flex items-center justify-between pl-1 pt-3.5">
+                    <div className="col-span-2 flex items-center justify-between pl-1 pt-4">
                       <div>
-                        <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Amount</span>
-                        <div className="text-xs sm:text-sm font-black text-slate-900 font-mono">
+                        <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Amount</span>
+                        <div className="text-sm sm:text-base font-black text-slate-900 font-mono tracking-tight">
                           ₹{itemAmt.toFixed(2)}
                         </div>
                       </div>
@@ -759,10 +759,10 @@ export default function NewBill() {
                         <button
                           type="button"
                           onClick={() => removeItem(index)}
-                          className="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors ml-1 cursor-pointer"
+                          className="p-2 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors ml-1 cursor-pointer"
                           title="Remove item"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
@@ -792,7 +792,7 @@ export default function NewBill() {
                   value={previousDue}
                   onChange={(e) => setPreviousDue(e.target.value)}
                   placeholder="0.00"
-                  className="w-full px-3 py-2 border border-amber-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500/30 bg-white font-extrabold font-mono"
+                  className="w-full px-3 py-2 border border-amber-300 rounded-lg text-base text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-amber-500/30 bg-white font-extrabold font-mono"
                 />
               </div>
               <div className="bg-emerald-50/60 p-3.5 rounded-xl border border-emerald-200/80">
@@ -808,7 +808,7 @@ export default function NewBill() {
                   value={paidAmount}
                   onChange={(e) => setPaidAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full px-3 py-2 border border-emerald-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white font-extrabold font-mono"
+                  className="w-full px-3 py-2 border border-emerald-300 rounded-lg text-base text-slate-900 placeholder:text-slate-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white font-extrabold font-mono"
                 />
               </div>
             </div>
