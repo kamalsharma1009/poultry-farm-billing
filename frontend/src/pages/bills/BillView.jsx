@@ -121,7 +121,8 @@ export default function BillView() {
 
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    const pdfUrl = getPublicBillPdfUrl(bill.id, whatsappInfo?.pdfUrl);
+    navigator.clipboard.writeText(pdfUrl);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
   };

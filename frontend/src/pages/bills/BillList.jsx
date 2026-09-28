@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import api from '../../lib/api';
-import { downloadBillPDF } from '../../lib/pdfDownload';
+import { downloadBillPDF, getPublicBillPdfUrl } from '../../lib/pdfDownload';
 import Header from '../../components/common/Header';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
@@ -143,8 +143,9 @@ export default function BillList() {
                         ? b.customer.mobile
                         : `91${b.customer.mobile.replace(/\D/g, '')}`
                       : '';
+                    const pdfUrl = getPublicBillPdfUrl(b.id);
                     const shareText = encodeURIComponent(
-                      `Hello ${b.customer?.customerName || ''},\n\nYour Broilers Express Bill #${b.billNumber} for ₹${Number(b.grandTotal).toFixed(2)} is ready.\n\nView/Download: ${window.location.origin}/bills/${b.id}\n\nThank you!`
+                      `Hello ${b.customer?.customerName || 'Customer'},\n\nYour Broilers Express Bill #${b.billNumber} for ₹${Number(b.grandTotal).toFixed(2)} is ready.\n\n📄 View/Download Bill PDF:\n${pdfUrl}\n\nThank you!\nBroilers Express`
                     );
                     const waUrl = mobile ? `https://wa.me/${mobile}?text=${shareText}` : null;
 

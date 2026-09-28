@@ -1,13 +1,21 @@
 import api from './api';
 
+export const BACKEND_PROD_URL = 'https://poultry-farm-billing.onrender.com/api';
+
 /**
  * Returns the configured base API URL, ensuring no trailing slash.
  * In production on Vercel, this points to the backend (e.g. Render).
  * In development, defaults to '/api'.
  */
 export function getApiBaseUrl() {
-  const base = import.meta.env.VITE_API_URL || '/api';
-  return base.replace(/\/+$/, '');
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.startsWith('http')) {
+    return envUrl.replace(/\/+$/, '');
+  }
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return BACKEND_PROD_URL;
+  }
+  return (envUrl || '/api').replace(/\/+$/, '');
 }
 
 /**
@@ -22,7 +30,7 @@ export function getPublicBillPdfUrl(billId, fallbackUrl) {
   if (baseUrl.startsWith('http')) {
     return `${baseUrl}/bills/public/${billId}/pdf`;
   }
-  return `${window.location.origin}${baseUrl}/bills/public/${billId}/pdf`;
+  return `${BACKEND_PROD_URL}/bills/public/${billId}/pdf`;
 }
 
 /**

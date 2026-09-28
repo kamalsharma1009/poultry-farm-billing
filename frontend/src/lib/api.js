@@ -1,7 +1,20 @@
 import axios from 'axios';
 
+const BACKEND_PROD_URL = 'https://poultry-farm-billing.onrender.com/api';
+
+function resolveBaseUrl() {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.startsWith('http')) {
+    return envUrl.replace(/\/+$/, '');
+  }
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return BACKEND_PROD_URL;
+  }
+  return (envUrl || '/api').replace(/\/+$/, '');
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: resolveBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },

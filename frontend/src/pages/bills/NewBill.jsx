@@ -249,7 +249,7 @@ export default function NewBill() {
     const totalAmount = grossTotal - paidAmount;
 
     const handleCopyBillLink = () => {
-      const url = `${window.location.origin}/bills/${bill.id}`;
+      const url = getPublicBillPdfUrl(bill.id, whatsappInfo?.pdfUrl);
       navigator.clipboard.writeText(url);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2500);
