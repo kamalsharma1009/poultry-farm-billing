@@ -3,7 +3,7 @@ const { z } = require('zod');
 const prisma = require('../config/prisma');
 const { authenticate } = require('../middleware/auth.middleware');
 const { getOrCreateFinancialYear } = require('../utils/fy.utils');
-const { generateBillPDF } = require('../utils/pdf.utils');
+const { generateBillPDF, invalidatePDFCache } = require('../utils/pdf.utils');
 const { openWhatsAppChat } = require('../services/whatsapp.service');
 
 const router = express.Router();
@@ -26,12 +26,19 @@ router.get('/public/:id/pdf', async (req, res, next) => {
       return res.status(404).send('Bill not found');
     }
 
+    const etag = `W/"pdf-${bill.id}-${new Date(bill.updatedAt || bill.createdAt).getTime()}"`;
+    if (req.headers['if-none-match'] === etag) {
+      return res.status(304).end();
+    }
+
     const settings = await prisma.businessSettings.findFirst();
     const pdfBuffer = await generateBillPDF(bill, bill.customer, settings);
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename=Bill_${bill.billNumber}_BroilersExpress.pdf`);
     res.setHeader('Content-Length', pdfBuffer.length);
+    res.setHeader('ETag', etag);
+    res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=43200');
 
     res.send(pdfBuffer);
   } catch (error) {
@@ -298,6 +305,11 @@ router.post('/', async (req, res, next) => {
     const host = `${req.protocol}://${req.get('host')}`;
     const whatsappInfo = openWhatsAppChat(customer.mobile, newBill, customer, bizSettings, host);
 
+    // Pre-warm PDF cache asynchronously in background so it's instantly available when WhatsApp link is clicked
+    generateBillPDF(newBill, customer, bizSettings).catch((err) => {
+      console.warn('[PDF Pre-warm] Notice:', err?.message);
+    });
+
     res.status(201).json({
       success: true,
       message: 'Bill generated successfully',
@@ -379,6 +391,11 @@ router.patch('/:id/cancel', async (req, res, next) => {
       return bill;
     });
 
+    invalidatePDFCache(id);
+    if (cancelledBill?.billNumber) {
+      invalidatePDFCache(cancelledBill.billNumber);
+    }
+
     res.json({
       success: true,
       message: `Bill #${existingBill.billNumber} cancelled successfully`,
@@ -428,6 +445,11 @@ router.delete('/:id', async (req, res, next) => {
         where: { id: existingBill.id },
       });
     }, { maxWait: 10000, timeout: 30000 });
+
+    invalidatePDFCache(id);
+    if (existingBill?.billNumber) {
+      invalidatePDFCache(existingBill.billNumber);
+    }
 
     res.json({
       success: true,

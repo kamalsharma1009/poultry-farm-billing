@@ -21,7 +21,60 @@ function formatAmount(val) {
   });
 }
 
-async function generateBillPDF(bill, customer, settings) {
+// Simple in-memory LRU cache to prevent repeated Chromium launches on Render 512MB RAM
+const MAX_CACHE_SIZE = 100;
+const pdfCache = new Map();
+
+function getCacheKey(bill) {
+  const billId = bill?.id || bill?.billNumber || 'unknown';
+  const timestamp = bill?.updatedAt
+    ? new Date(bill.updatedAt).getTime()
+    : (bill?.createdAt ? new Date(bill.createdAt).getTime() : 0);
+  return `${billId}_${timestamp}`;
+}
+
+function getCachedPDF(key) {
+  if (pdfCache.has(key)) {
+    const val = pdfCache.get(key);
+    // Refresh LRU order
+    pdfCache.delete(key);
+    pdfCache.set(key, val);
+    return val;
+  }
+  return null;
+}
+
+function setCachedPDF(key, buffer) {
+  if (pdfCache.size >= MAX_CACHE_SIZE) {
+    const oldestKey = pdfCache.keys().next().value;
+    if (oldestKey) pdfCache.delete(oldestKey);
+  }
+  pdfCache.set(key, buffer);
+}
+
+function invalidatePDFCache(billIdOrNumber) {
+  if (!billIdOrNumber) return;
+  const search = String(billIdOrNumber);
+  for (const key of pdfCache.keys()) {
+    if (key.startsWith(search) || key.includes(search)) {
+      pdfCache.delete(key);
+    }
+  }
+}
+
+// Sequential queue to guarantee only 1 Chromium instance runs at any time
+let queuePromise = Promise.resolve();
+
+function runInPdfQueue(task) {
+  const currentTask = queuePromise.then(
+    () => task(),
+    () => task()
+  );
+  queuePromise = currentTask.catch(() => {});
+  return currentTask;
+}
+
+function buildBillHtml(bill, customer, settings) {
   const cust = customer || bill.customer || {};
   const businessName = settings?.businessName || 'BROILERS EXPRESS';
   const businessAddress = settings?.address || 'Motton Market, Jaysingpur';
@@ -41,14 +94,11 @@ async function generateBillPDF(bill, customer, settings) {
   const grossTotal = grandTotal + previousDue;
   const totalAmount = grossTotal - paidAmount;
 
-  // No empty spacer rows to keep table compact and eliminate negative space
-  const emptyRowsHtml = '';
-
   const logoHtml = CHICKEN_LOGO_B64
     ? `<img src="${CHICKEN_LOGO_B64}" class="chicken-logo" alt="Broilers Express" />`
     : `<div class="chicken-placeholder">🐔</div>`;
 
-  const htmlContent = `
+  return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -421,33 +471,68 @@ async function generateBillPDF(bill, customer, settings) {
     </body>
     </html>
   `;
+}
 
+async function renderPdfWithPuppeteer(htmlContent) {
   let browser;
   try {
     browser = await puppeteer.launch({
       headless: true,
+      timeout: 30000,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-web-security',
         '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
         '--disable-gpu',
-        '--no-zygote'
+        '--disable-extensions',
+        '--disable-software-rasterizer',
+        '--mute-audio',
+        '--js-flags=--max-old-space-size=128',
       ],
     });
     const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded' });
+    await page.setContent(htmlContent, { waitUntil: 'domcontentloaded', timeout: 20000 });
     const pdfBuffer = await page.pdf({
       format: 'A5',
       margin: { top: '8mm', right: '8mm', bottom: '8mm', left: '8mm' },
       printBackground: true,
     });
+    await page.close().catch(() => {});
     return pdfBuffer;
   } finally {
     if (browser) {
-      await browser.close();
+      await browser.close().catch(() => {});
     }
   }
 }
 
-module.exports = { generateBillPDF };
+async function generateBillPDF(bill, customer, settings) {
+  const cacheKey = getCacheKey(bill);
+  const cached = getCachedPDF(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // Execute in sequential queue so multiple incoming requests (e.g. WhatsApp crawler + user click)
+  // never spawn parallel Chromium instances that exceed Render's 512MB RAM.
+  return runInPdfQueue(async () => {
+    // Re-check cache in case a previous queued request generated it
+    const doubleCheck = getCachedPDF(cacheKey);
+    if (doubleCheck) {
+      return doubleCheck;
+    }
+
+    const htmlContent = buildBillHtml(bill, customer, settings);
+    const pdfBuffer = await renderPdfWithPuppeteer(htmlContent);
+    setCachedPDF(cacheKey, pdfBuffer);
+    return pdfBuffer;
+  });
+}
+
+module.exports = {
+  generateBillPDF,
+  invalidatePDFCache,
+};
