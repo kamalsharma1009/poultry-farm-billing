@@ -55,7 +55,7 @@ async function generateBillPDF(bill, customer, settings) {
       <meta charset="UTF-8" />
       <title>Bill #${bill.billNumber} - ${businessName}</title>
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -65,7 +65,7 @@ async function generateBillPDF(bill, customer, settings) {
         }
 
         body {
-          font-family: 'Plus Jakarta Sans', 'Segoe UI', Arial, sans-serif;
+          font-family: 'Inter', Arial, Helvetica, sans-serif;
           font-size: 11px;
           color: #000;
           background: #fff;
@@ -215,6 +215,9 @@ async function generateBillPDF(bill, customer, settings) {
           border-right: 1.5px solid #000;
           vertical-align: middle;
           font-variant-numeric: tabular-nums;
+          font-feature-settings: 'tnum' 1, 'zero' 0;
+          font-family: 'Inter', Arial, Helvetica, sans-serif;
+          letter-spacing: 0.3px;
           color: #000;
         }
 
@@ -225,7 +228,12 @@ async function generateBillPDF(bill, customer, settings) {
         .tc { text-align: center; }
         .tr { text-align: right; }
         .tl { text-align: left; }
-        .mono { font-family: 'JetBrains Mono', 'Courier New', Courier, monospace; }
+        .mono {
+          font-family: 'Inter', Arial, Helvetica, sans-serif;
+          font-variant-numeric: tabular-nums;
+          font-feature-settings: 'tnum' 1, 'zero' 0;
+          letter-spacing: 0.3px;
+        }
         .bold { font-weight: 700; }
         .heavy { font-weight: 900; }
 
@@ -269,7 +277,10 @@ async function generateBillPDF(bill, customer, settings) {
           text-align: right;
           width: 180px;
           font-weight: 900;
-          font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
+          font-family: 'Inter', Arial, Helvetica, sans-serif;
+          font-variant-numeric: tabular-nums;
+          font-feature-settings: 'tnum' 1, 'zero' 0;
+          letter-spacing: 0.3px;
           font-size: 20px;
           color: #000;
         }
@@ -283,6 +294,10 @@ async function generateBillPDF(bill, customer, settings) {
         .summary-tier-final .summary-value {
           font-size: 26px;
           font-weight: 900;
+          font-family: 'Inter', Arial, Helvetica, sans-serif;
+          font-variant-numeric: tabular-nums;
+          font-feature-settings: 'tnum' 1, 'zero' 0;
+          letter-spacing: 0.3px;
         }
 
         /* ===== FOOTER ===== */

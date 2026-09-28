@@ -434,10 +434,10 @@ export default function BillView() {
               <tbody>
                 {bill.items.map((item, idx) => (
                   <tr key={idx} className="h-8">
-                    <td className="py-1 px-2 text-center border-r-2 border-black font-mono font-black text-sm">{item.quantity}</td>
-                    <td className="py-1 px-2 text-center border-r-2 border-black font-mono font-black text-sm">{Number(item.weight).toFixed(3)}</td>
-                    <td className="py-1 px-2 text-center border-r-2 border-black font-mono font-black text-sm">{Number(item.rate).toFixed(2)}</td>
-                    <td className="py-1 px-2 text-right font-mono font-black text-sm">₹{fmt(item.amount)}</td>
+                    <td className="py-1 px-2 text-center border-r-2 border-black font-sans font-black tabular-nums text-sm">{item.quantity}</td>
+                    <td className="py-1 px-2 text-center border-r-2 border-black font-sans font-black tabular-nums text-sm">{Number(item.weight).toFixed(3)}</td>
+                    <td className="py-1 px-2 text-center border-r-2 border-black font-sans font-black tabular-nums text-sm">{Number(item.rate).toFixed(2)}</td>
+                    <td className="py-1 px-2 text-right font-sans font-black tabular-nums text-sm">₹{fmt(item.amount)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -448,23 +448,23 @@ export default function BillView() {
           <div className="border-b-2 border-black py-2.5 px-3 text-xs space-y-1.5">
             <div className="flex justify-end gap-4 items-center">
               <span className="font-bold text-sm">Bill Total:</span>
-              <span className="font-mono font-black text-base w-32 text-right">₹{fmt(grandTotal)}</span>
+              <span className="font-sans font-black tabular-nums text-base w-32 text-right">₹{fmt(grandTotal)}</span>
             </div>
             <div className="flex justify-end gap-4 items-center">
               <span className="font-bold text-sm">Previous Bill Dues:</span>
-              <span className="font-mono font-black text-base w-32 text-right">+ ₹{fmt(previousDue)}</span>
+              <span className="font-sans font-black tabular-nums text-base w-32 text-right">+ ₹{fmt(previousDue)}</span>
             </div>
             <div className="flex justify-end gap-4 items-center border-t border-black pt-1">
               <span className="font-bold text-sm">Gross Total:</span>
-              <span className="font-mono font-black text-base w-32 text-right">₹{fmt(grossTotal)}</span>
+              <span className="font-sans font-black tabular-nums text-base w-32 text-right">₹{fmt(grossTotal)}</span>
             </div>
             <div className="flex justify-end gap-4 items-center">
               <span className="font-bold text-sm">Paid Amt:</span>
-              <span className="font-mono font-black text-base w-32 text-right">- ₹{fmt(paidAmount)}</span>
+              <span className="font-sans font-black tabular-nums text-base w-32 text-right">- ₹{fmt(paidAmount)}</span>
             </div>
             <div className="flex justify-end gap-4 items-center border-t-2 border-black pt-1.5">
               <span className="font-black text-base">Total Amount:</span>
-              <span className="font-mono font-black text-xl w-32 text-right">₹{fmt(totalAmount)}</span>
+              <span className="font-sans font-black tabular-nums text-xl w-32 text-right">₹{fmt(totalAmount)}</span>
             </div>
           </div>
 
