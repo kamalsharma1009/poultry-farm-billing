@@ -14,8 +14,12 @@ router.get('/public/:id/pdf', async (req, res, next) => {
     const { id } = req.params;
 
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    const bill = await prisma.bill.findFirst({
-      where: isUuid ? { id } : { billNumber: id },
+    if (!isUuid) {
+      return res.status(403).send('Direct access forbidden. Please use your official link.');
+    }
+
+    const bill = await prisma.bill.findUnique({
+      where: { id },
       include: {
         customer: true,
         items: true,
