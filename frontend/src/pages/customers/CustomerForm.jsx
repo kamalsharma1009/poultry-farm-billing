@@ -139,15 +139,10 @@ export default function CustomerForm() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link
-          to="/customers"
-          className="p-2.5 text-slate-600 hover:text-slate-900 hover:bg-white rounded-xl transition-colors border border-slate-200 bg-white/70 shadow-2xs"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <Header title={isEdit ? 'Edit Customer' : 'Add New Customer'} />
-      </div>
+      <Header
+        title={isEdit ? 'Edit Customer' : 'Add New Customer'}
+        backTo="/customers"
+      />
 
       <div className="max-w-2xl mx-auto bg-white rounded-2xl p-8 border border-slate-200/90 shadow-sm">
         {serverError && (

@@ -49,15 +49,10 @@ export default function CustomerProfile() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link
-          to="/customers"
-          className="p-2 text-slate-600 hover:text-slate-900 hover:bg-white rounded-lg transition-colors border border-slate-200"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <Header title={`Customer Profile: ${customer.customerName}`} />
-      </div>
+      <Header
+        title={`Customer Profile: ${customer.customerName}`}
+        backTo="/customers"
+      />
 
       {/* Customer Info Card */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
