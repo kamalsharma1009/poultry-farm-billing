@@ -1,46 +1,80 @@
-
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import LoadingSpinner from './components/common/LoadingSpinner';
 
-// Payment restriction screen
-function PaymentPending() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+// Pages & Layouts
+import DashboardLayout from './layouts/DashboardLayout';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import CustomerList from './pages/customers/CustomerList';
+import CustomerForm from './pages/customers/CustomerForm';
+import CustomerProfile from './pages/customers/CustomerProfile';
+import NewBill from './pages/bills/NewBill';
+import BillList from './pages/bills/BillList';
+import BillView from './pages/bills/BillView';
+import BusinessSettings from './pages/settings/BusinessSettings';
 
-        <div className="text-5xl mb-5">🔒</div>
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
-        <h1 className="text-2xl font-bold text-gray-800 mb-3">
-          Application Temporarily Suspended
-        </h1>
+function ProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useAuth();
 
-        <p className="text-gray-600 mb-5">
-          Access to this application has been temporarily
-          suspended due to an outstanding payment.
-        </p>
+  if (loading) {
+    return <LoadingSpinner fullScreen label="Verifying session..." />;
+  }
 
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-5">
-          <p className="text-yellow-800 text-sm">
-            Please contact the service provider to clear
-            the pending payment and restore access.
-          </p>
-        </div>
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
-        <p className="text-sm text-gray-400">
-          We apologize for the inconvenience.
-        </p>
-
-      </div>
-    </div>
-  );
+  return children;
 }
 
 export default function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="*" element={<PaymentPending />} />
-      </Routes>
-    </Router>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            {/* Public Auth Route */}
+            <Route path="/login" element={<Login />} />
+
+            {/* Protected App Routes */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="customers" element={<CustomerList />} />
+              <Route path="customers/new" element={<CustomerForm />} />
+              <Route path="customers/:id" element={<CustomerProfile />} />
+              <Route path="customers/:id/edit" element={<CustomerForm />} />
+
+              <Route path="bills" element={<BillList />} />
+              <Route path="bills/new" element={<NewBill />} />
+              <Route path="bills/:id" element={<BillView />} />
+
+              <Route path="settings" element={<BusinessSettings />} />
+            </Route>
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
