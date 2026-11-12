@@ -112,7 +112,156 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// GET /api/customers/:id - Customer details & bill history
+// GET /api/customers/reports/monthly-purchases - Cross-customer monthly purchases & weight report
+router.get('/reports/monthly-purchases', async (req, res, next) => {
+  try {
+    const { month } = req.query; // format: 'YYYY-MM' (e.g. '2026-11')
+
+    // Find all distinct months where generated bills exist
+    const allBillsDates = await prisma.bill.findMany({
+      where: { status: 'GENERATED' },
+      select: { billDate: true },
+      orderBy: { billDate: 'desc' },
+    });
+
+    const monthSet = new Set();
+    allBillsDates.forEach((b) => {
+      const d = new Date(b.billDate);
+      const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      monthSet.add(mKey);
+    });
+
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    if (!monthSet.has(currentMonthKey)) {
+      monthSet.add(currentMonthKey);
+    }
+    const availableMonths = Array.from(monthSet).sort((a, b) => b.localeCompare(a));
+
+    const selectedMonth = month && /^\d{4}-\d{2}$/.test(month) ? month : availableMonths[0] || currentMonthKey;
+    const [yearStr, monthStr] = selectedMonth.split('-');
+    const year = parseInt(yearStr, 10);
+    const monthNum = parseInt(monthStr, 10);
+
+    const startDate = new Date(year, monthNum - 1, 1, 0, 0, 0, 0);
+    const endDate = new Date(year, monthNum, 0, 23, 59, 59, 999);
+
+    const bills = await prisma.bill.findMany({
+      where: {
+        billDate: { gte: startDate, lte: endDate },
+        status: 'GENERATED',
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            customerCode: true,
+            customerName: true,
+            businessName: true,
+            mobile: true,
+            currentDue: true,
+          },
+        },
+        items: true,
+      },
+    });
+
+    // Aggregate by customer
+    const customerMap = new Map();
+    let totalMonthWeight = 0;
+    let totalMonthQuantity = 0;
+    let totalMonthRevenue = 0;
+
+    bills.forEach((bill) => {
+      const cust = bill.customer;
+      if (!cust) return;
+
+      if (!customerMap.has(cust.id)) {
+        customerMap.set(cust.id, {
+          customerId: cust.id,
+          customerCode: cust.customerCode,
+          customerName: cust.customerName,
+          businessName: cust.businessName,
+          mobile: cust.mobile,
+          currentDue: Number(cust.currentDue || 0),
+          totalWeight: 0,
+          totalQuantity: 0,
+          totalAmount: 0,
+          billsCount: 0,
+          products: {},
+        });
+      }
+
+      const cData = customerMap.get(cust.id);
+      cData.billsCount += 1;
+      const bTotal = Number(bill.grandTotal || 0);
+      cData.totalAmount += bTotal;
+      totalMonthRevenue += bTotal;
+
+      bill.items.forEach((item) => {
+        const w = Number(item.weight || 0);
+        const q = Number(item.quantity || 0);
+        const a = Number(item.amount || 0);
+
+        cData.totalWeight += w;
+        cData.totalQuantity += q;
+        totalMonthWeight += w;
+        totalMonthQuantity += q;
+
+        const pName = item.productName || 'Broiler Chicken';
+        if (!cData.products[pName]) {
+          cData.products[pName] = { productName: pName, weight: 0, quantity: 0, amount: 0 };
+        }
+        cData.products[pName].weight += w;
+        cData.products[pName].quantity += q;
+        cData.products[pName].amount += a;
+      });
+    });
+
+    const customers = Array.from(customerMap.values())
+      .map((c) => {
+        const tw = Math.round(c.totalWeight * 1000) / 1000;
+        const ta = Math.round(c.totalAmount * 100) / 100;
+        return {
+          ...c,
+          totalWeight: tw,
+          totalAmount: ta,
+          avgRate: tw > 0 ? Math.round((ta / tw) * 100) / 100 : 0,
+          products: Object.values(c.products).map((p) => ({
+            ...p,
+            weight: Math.round(p.weight * 1000) / 1000,
+            amount: Math.round(p.amount * 100) / 100,
+          })),
+        };
+      })
+      .sort((a, b) => b.totalWeight - a.totalWeight); // Highest weight purchaser first
+
+    const monthDateObj = new Date(year, monthNum - 1, 1);
+    const monthLabel = monthDateObj.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+
+    res.json({
+      success: true,
+      data: {
+        selectedMonth,
+        monthLabel,
+        availableMonths,
+        summary: {
+          totalWeight: Math.round(totalMonthWeight * 1000) / 1000,
+          totalQuantity: totalMonthQuantity,
+          totalRevenue: Math.round(totalMonthRevenue * 100) / 100,
+          activeCustomersCount: customers.length,
+          totalBillsCount: bills.length,
+          avgRateOverall: totalMonthWeight > 0 ? Math.round((totalMonthRevenue / totalMonthWeight) * 100) / 100 : 0,
+        },
+        customers,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/customers/:id - Customer details, bill history & monthly purchase stats
 router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -122,13 +271,8 @@ router.get('/:id', async (req, res, next) => {
       include: {
         bills: {
           orderBy: { billDate: 'desc' },
-          select: {
-            id: true,
-            billNumber: true,
-            billDate: true,
-            grandTotal: true,
-            status: true,
-            createdAt: true,
+          include: {
+            items: true,
           },
         },
       },
@@ -138,9 +282,128 @@ router.get('/:id', async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
 
+    // Calculate Monthly Purchase & Weight Statistics
+    const monthlyMap = new Map();
+    let totalWeightAllTime = 0;
+    let totalQuantityAllTime = 0;
+    let totalSpentAllTime = 0;
+    let validBillsCount = 0;
+
+    const now = new Date();
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    let currentMonthWeight = 0;
+    let currentMonthAmount = 0;
+
+    customer.bills.forEach((bill) => {
+      // Exclude CANCELLED bills from purchase weight stats
+      if (bill.status === 'CANCELLED') return;
+
+      validBillsCount++;
+      const bDate = new Date(bill.billDate || bill.createdAt);
+      const year = bDate.getFullYear();
+      const monthNum = bDate.getMonth() + 1;
+      const monthKey = `${year}-${String(monthNum).padStart(2, '0')}`;
+      const monthLabel = bDate.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+      const shortMonth = bDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
+
+      if (!monthlyMap.has(monthKey)) {
+        monthlyMap.set(monthKey, {
+          monthKey,
+          monthLabel,
+          shortMonth,
+          year,
+          monthNum,
+          totalWeight: 0,
+          totalQuantity: 0,
+          totalAmount: 0,
+          billsCount: 0,
+          products: {},
+        });
+      }
+
+      const mData = monthlyMap.get(monthKey);
+      mData.billsCount += 1;
+      const bTotal = Number(bill.grandTotal || 0);
+      mData.totalAmount += bTotal;
+      totalSpentAllTime += bTotal;
+
+      if (monthKey === currentMonthKey) {
+        currentMonthAmount += bTotal;
+      }
+
+      bill.items.forEach((item) => {
+        const w = Number(item.weight || 0);
+        const q = Number(item.quantity || 0);
+        const a = Number(item.amount || 0);
+
+        mData.totalWeight += w;
+        mData.totalQuantity += q;
+        totalWeightAllTime += w;
+        totalQuantityAllTime += q;
+
+        if (monthKey === currentMonthKey) {
+          currentMonthWeight += w;
+        }
+
+        const pName = item.productName || 'Broiler Chicken';
+        if (!mData.products[pName]) {
+          mData.products[pName] = { productName: pName, weight: 0, quantity: 0, amount: 0 };
+        }
+        mData.products[pName].weight += w;
+        mData.products[pName].quantity += q;
+        mData.products[pName].amount += a;
+      });
+    });
+
+    // Convert map to sorted array (newest month first)
+    const monthlyStats = Array.from(monthlyMap.values())
+      .sort((a, b) => b.monthKey.localeCompare(a.monthKey))
+      .map((m) => ({
+        ...m,
+        totalWeight: Math.round(m.totalWeight * 1000) / 1000,
+        totalAmount: Math.round(m.totalAmount * 100) / 100,
+        avgRate: m.totalWeight > 0 ? Math.round((m.totalAmount / m.totalWeight) * 100) / 100 : 0,
+        products: Object.values(m.products).map((p) => ({
+          ...p,
+          weight: Math.round(p.weight * 1000) / 1000,
+          amount: Math.round(p.amount * 100) / 100,
+        })),
+      }));
+
+    const activeMonthsCount = monthlyStats.length || 1;
+    const avgMonthlyWeight = Math.round((totalWeightAllTime / activeMonthsCount) * 1000) / 1000;
+
+    // Attach total weight and quantity summary to bills for easy display in history table
+    const billsWithSummary = customer.bills.map((b) => {
+      const billWeight = b.items?.reduce((sum, it) => sum + Number(it.weight || 0), 0) || 0;
+      const billQuantity = b.items?.reduce((sum, it) => sum + Number(it.quantity || 0), 0) || 0;
+      return {
+        ...b,
+        totalWeight: Math.round(billWeight * 1000) / 1000,
+        totalQuantity: billQuantity,
+      };
+    });
+
+    const purchaseStats = {
+      totalWeightAllTime: Math.round(totalWeightAllTime * 1000) / 1000,
+      totalQuantityAllTime,
+      totalSpentAllTime: Math.round(totalSpentAllTime * 100) / 100,
+      validBillsCount,
+      currentMonthWeight: Math.round(currentMonthWeight * 1000) / 1000,
+      currentMonthAmount: Math.round(currentMonthAmount * 100) / 100,
+      avgMonthlyWeight,
+      monthlyStats,
+    };
+
     res.json({
       success: true,
-      data: { customer },
+      data: {
+        customer: {
+          ...customer,
+          bills: billsWithSummary,
+        },
+        purchaseStats,
+      },
     });
   } catch (error) {
     next(error);
